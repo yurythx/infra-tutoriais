@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  postgres_ravenna:
+    image: postgres:15
+    container_name: postgres_ravenna
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: suporte123
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ravenna_net
+    restart: unless-stopped
+
+  redis_ravenna:
+    image: redis:7
+    container_name: redis_ravenna
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ravenna_net
+    restart: unless-stopped
+
+  evolution_api:
+    image: evoapicloud/evolution-api:v2.3.1
+    container_name: evolution_api
+    depends_on:
+      - postgres_ravenna
+      - redis_ravenna
+    environment:
+      LANGUAGE: pt-BR
+      AUTHENTICATION_API_KEY: EFd4naHQUZpxMDda6fPzh31n8Gt7BtgxTDDMfQRVVVrleqN8RNTdkFSPwTcl7f06
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
+      DEL_INSTANCE: "false"
+      LOG_LEVEL: ERROR,WARN,DEBUG,INFO,LOG,VERBOSE,DARK,WEBHOOKS
+      CONFIG_SESSION_PHONE_CLIENT: Projeto Havoc
+      CONFIG_SESSION_PHONE_NAME: Chrome
+      QRCODE_LIMIT: 5
+      # Banco de Dados
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://postgres:suporte123@postgres_ravenna:5432/postgres?schema=public
+      DATABASE_CONNECTION_CLIENT_NAME: postgres
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
+      DATABASE_SAVE_MESSAGE_UPDATE: "true"
+      DATABASE_SAVE_DATA_CONTACTS: "true"
+      DATABASE_SAVE_DATA_CHATS: "true"
+      DATABASE_SAVE_DATA_LABELS: "true"
+      DATABASE_SAVE_DATA_HISTORIC: "true"
+      # Redis
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://redis_ravenna:6379/6
+      CACHE_REDIS_PREFIX_KEY: evolution
+      CACHE_REDIS_TTL: 604800
+      CACHE_REDIS_SAVE_INSTANCES: "true"
+      # Integrações
+      OPENAI_ENABLED: "true"
+      DIFY_ENABLED: "true"
+      TYPEBOT_ENABLED: "true"
+      TYPEBOT_API_VERSION: latest
+      CHATWOOT_ENABLED: "true"
+      CHATWOOT_MESSAGE_READ: "true"
+      CHATWOOT_MESSAGE_DELETE: "false"
+      CHATWOOT_IMPORT_DATABASE_CONNECTION_URI: postgresql://postgres:suporte123@postgres_ravenna:5432/chatwoot?sslmode=disable
+      CHATWOOT_IMPORT_PLACEHOLDER_MEDIA_MESSAGE: "true"
+    ports:
+      - "8083:8080"
+    networks:
+      - ravenna_net
+    restart: unless-stopped
+    volumes:
+      - evolution_store:/evolution/store
+      - evolution_instances:/evolution/instances
+    command: >
+      /bin/sh -c "
+      until nc -z -v -w30 postgres_ravenna 5432
+      do
+        echo 'Waiting for Postgres...'
+        sleep 3
+      done
+      node ./dist/src/main.js
+      "
+
+volumes:
+  postgres_data:
+  redis_data:
+  evolution_store:
+  evolution_instances:
+
+networks:
+  ravenna_net:
+    driver: bridge
