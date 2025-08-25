@@ -1,0 +1,70 @@
+version: '3.7'
+
+services:
+  evolution-api:
+    image: evoapicloud/evolution-api:v2.3.1
+    command: ["node", "./dist/src/main.js"]
+    container_name: evolution_api2
+    restart: always
+    ports:
+      - "8083:8080"
+    environment:
+      - LANGUAGE=pt-BR
+      - AUTHENTICATION_API_KEY=EFd4naHQUZpxMDda6fPzh31n8Gt7BtgxTDDMfQRVVVrleqN8RNTdkFSPwTcl7f06
+      - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
+      - DEL_INSTANCE=false
+      - LOG_LEVEL=ERROR,WARN,DEBUG,INFO,LOG,VERBOSE,DARK,WEBHOOKS
+      - CONFIG_SESSION_PHONE_CLIENT=Prefeitura Rondonopolis
+      - CONFIG_SESSION_PHONE_NAME=Chrome
+     # - CONFIG_SESSION_PHONE_VERSION=2.3000.1020885143
+      - QRCODE_LIMIT=5
+      # Aivar Banco de Dados
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://postgres:RmBKydpkYdjcyTJh@192.168.0.218:5433/postgres?schema=public
+      - DATABASE_CONNECTION_CLIENT_NAME=postgres
+      # Escolha o que deseja salvar
+      - DATABASE_SAVE_DATA_INSTANCE=true
+      - DATABASE_SAVE_DATA_NEW_MESSAGE=true
+      - DATABASE_SAVE_MESSAGE_UPDATE=true
+      - DATABASE_SAVE_DATA_CONTACTS=true
+      - DATABASE_SAVE_DATA_CHATS=true
+      - DATABASE_SAVE_DATA_LABELS=true
+      - DATABASE_SAVE_DATA_HISTORIC=true
+
+
+
+      #redis
+      # Defina como true para habilitar o Redis.
+      - CACHE_REDIS_ENABLED=false
+      # URI do seu servidor Redis.
+      - CACHE_REDIS_URI=redis://192.168.0.218:6389/6
+      # Chave de prefixo para dados do Redis.
+      - CACHE_REDIS_PREFIX_KEY=evolution
+      # Tempo que os dados são mantidos em cache
+      - CACHE_REDIS_TTL=604800
+      # Salva as credencias de conexão do whatsapp no redis
+      - CACHE_REDIS_SAVE_INSTANCES=true
+
+      #Openai
+      - OPENAI_ENABLED=true
+      #Dify
+      - DIFY_ENABLED=true
+      #Typebot
+      - TYPEBOT_ENABLED=true
+      - TYPEBOT_API_VERSION=latest
+      #Chatwoot
+      - CHATWOOT_ENABLED=true
+      - CHATWOOT_MESSAGE_READ=true
+      - CHATWOOT_MESSAGE_DELETE=false
+      - CHATWOOT_IMPORT_DATABASE_CONNECTION_URI=postgresql://postgres:RmBKydpkYdjcyTJh@192.168.0.218:5432/chatwoot?sslmode=disable
+      - CHATWOOT_IMPORT_PLACEHOLDER_MEDIA_MESSAGE=true
+      
+    volumes:
+      - evolution_store:/evolution/store
+      - evolution_instances:/evolution/instances
+
+
+
+volumes:
+  evolution_store:
+  evolution_instances:

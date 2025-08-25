@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  postgres_ravenna:
+    image: postgres:15
+    container_name: postgres_ravenna
+    env_file:
+      - .env
+    volumes:
+      - postgres_ravenna_data:/var/lib/postgresql/data
+    networks:
+      - ravenna_net
+    restart: unless-stopped
+
+volumes:
+  postgres_ravenna_data:
+
+networks:
+  ravenna_net:
+    external: true

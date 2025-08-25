@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  evolution_api:
+    image: evoapicloud/evolution-api:v2.3.1 
+    command: ["node", "./dist/src/main.js"]
+    container_name: evolution_api
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    networks:
+      - ravenna_net
+    restart: unless-stopped
+
+networks:
+  ravenna_net:
+    external: true
+
+

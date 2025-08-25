@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  redis_ravenna:
+    image: redis:7
+    container_name: redis_ravenna
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_ravenna_data:/data
+    networks:
+      - ravenna_net
+    restart: unless-stopped
+
+volumes:
+  redis_ravenna_data:
+
+networks:
+  ravenna_net:
+    external: true

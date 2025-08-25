@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  # Base Chatwoot
+  base: &base
+    image: chatwoot/chatwoot:latest
+    volumes:
+      - storage_data:/app/storage
+    networks:
+      - chatwoot_net
+
+  # Web (Rails)
+  rails:
+    <<: *base
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: production
+      RAILS_ENV: production
+      INSTALLATION_ENV: docker
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: RmBKydpkYdjcyTJh
+      POSTGRES_DB: chatwoot
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      REDIS_URL: redis://:RedisSenhaForte@redis:6379
+    entrypoint: docker/entrypoints/rails.sh
+    command: ['bundle', 'exec', 'rails', 's', '-p', '3000', '-b', '0.0.0.0']
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Background Jobs (Sidekiq)
+  sidekiq:
+    <<: *base
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      RAILS_ENV: production
+      INSTALLATION_ENV: docker
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: RmBKydpkYdjcyTJh
+      POSTGRES_DB: chatwoot
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      REDIS_URL: redis://:RedisSenhaForte@redis:6379
+    command: ['bundle', 'exec', 'sidekiq', '-C', 'config/sidekiq.yml']
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "ps aux | grep [s]idekiq || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # PostgreSQL
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: always
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: chatwoot
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: RmBKydpkYdjcyTJh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d chatwoot -h localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: ["sh", "-c", "redis-server --requirepass \"RedisSenhaForte\""]
+    volumes:
+      - redis_data:/data
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "RedisSenhaForte", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  storage_data:
+  postgres_data:
+  redis_data:
+
+networks:
+  chatwoot_net:
+    driver: bridge
